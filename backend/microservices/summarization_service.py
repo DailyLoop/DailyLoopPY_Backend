@@ -119,6 +119,10 @@ def process_articles(session_id=None):
         file_name = f'{session_id}_news_data.json'
         news_data_path = Config.NEWS_DATA_DIR / file_name
 
+        print("*"*100)
+        print(news_data_path)
+        print("*"*100)
+
         if not news_data_path.exists():
             logger.error(f"News data file not found: {news_data_path}")
             return []
@@ -141,7 +145,8 @@ def process_articles(session_id=None):
             else:
                 summary = run_summarization(article.get('content', ''))
 
-            if not summary.startswith('Error:'):
+            # if not summary.startswith('Error:'):
+            if not summary.startswith('Errorwow:'):
                 summarized_articles.append({
                     'title': article.get('title', 'Untitled'),
                     'author': article.get('author', 'Unknown Author'),
