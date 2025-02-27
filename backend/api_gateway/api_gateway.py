@@ -23,6 +23,7 @@ load_dotenv()
 
 
 from backend.microservices.summarization_service import run_summarization, process_articles
+from backend.microservices.perplexity_api import fetch_articles, summarize_article
 from backend.microservices.news_fetcher import fetch_news
 from backend.core.config import Config
 from backend.core.utils import setup_logger, log_exception
@@ -393,6 +394,43 @@ class StoryTracking(Resource):
                 'status': 'error',
                 'message': str(e)
             }), 500)
+            
+            
+@app.route('/api/fetchAndSummarize', methods=['GET'])
+def fetch_and_summarize():
+    """
+    Endpoint that accepts a 'keyword' parameter,
+    fetches 20 latest articles and their summaries,
+    writes the output to output.json, and returns the data.
+    """
+    keyword = request.args.get('keyword')
+    if not keyword:
+        return jsonify({"error": "Missing 'keyword' parameter."}), 400
+
+    try:
+        # Fetch articles from the Perplexity Sonar API.
+        articles = fetch_articles(keyword)
+
+        output_articles = []
+        for article in articles:
+            content = article.get("content", "")
+            summary = summarize_article(content)
+            article["summary"] = summary
+            # Optionally, add filter_keywords using your own logic:
+            article["filter_keywords"] = []  
+            output_articles.append(article)
+
+        # Write the output to a JSON file.
+        output_filename = "output.json"
+        with open(output_filename, "w") as f:
+            json.dump(output_articles, f, indent=4)
+
+        return jsonify(output_articles), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+    
 
 if __name__ == '__main__':
     port = int(sys.argv[1]) if len(sys.argv) > 1 else Config.API_PORT
