@@ -67,7 +67,7 @@ print("[DEBUG] [api_gateway] [startup] Flask app initialized with secret key")
 
 # Configure CORS to allow specific origins and methods
 CORS(app, 
-     origins=["http://localhost:5173", "http://localhost:5001"], 
+     origins=["http://localhost:5173", "http://localhost:8080"], 
      supports_credentials=True, 
      allow_headers=["Content-Type", "Authorization"], 
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -698,6 +698,128 @@ class StoryTracking(Resource):
         except Exception as e:
             print(f"[DEBUG] [api_gateway] [story_tracking] Error: {str(e)}")
             logger.error(f"Error creating tracked story: {str(e)}")
+            return make_response(jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500)
+
+@story_tracking_ns.route('/start')
+class StartStoryTracking(Resource):
+    @token_required
+    def post(self):
+        """Start polling for a tracked story.
+        Requires a valid JWT token in the Authorization header.
+        Enables polling for a specific tracked story.
+        Expected JSON payload:
+        {
+            'story_id': str (required)
+        }
+        Returns:
+            dict: Contains updated story details and success status.
+            int: HTTP 200 on success, 400 on validation error, 404 if story not found, 500 on server error.
+        """
+        try:
+            print("[DEBUG] [api_gateway] [start_story_tracking] Called")
+            auth_header = request.headers.get('Authorization')
+            token = auth_header.split()[1]
+            print(f"[DEBUG] [api_gateway] [start_story_tracking] Decoding token: {token[:10]}...")
+            payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
+            user_id = payload.get('sub')
+            print(f"[DEBUG] [api_gateway] [start_story_tracking] Starting polling for user: {user_id}")
+            
+            data = request.get_json()
+            story_id = data.get('story_id')
+            print(f"[DEBUG] [api_gateway] [start_story_tracking] Story ID: {story_id}")
+            
+            if not story_id:
+                print("[DEBUG] [api_gateway] [start_story_tracking] Story ID missing in request")
+                return make_response(jsonify({
+                    'status': 'error',
+                    'message': 'Story ID is required'
+                }), 400)
+            
+            print(f"[DEBUG] [api_gateway] [start_story_tracking] Calling toggle_polling with user_id: {user_id}, story_id: {story_id}, enable=True")
+            from backend.microservices.story_tracking_service import toggle_polling
+            updated_story = toggle_polling(user_id, story_id, enable=True)
+            
+            if not updated_story:
+                print(f"[DEBUG] [api_gateway] [start_story_tracking] No story found with ID {story_id} for user {user_id}")
+                return make_response(jsonify({
+                    'status': 'error',
+                    'message': 'Story not found or unauthorized'
+                }), 404)
+            
+            print(f"[DEBUG] [api_gateway] [start_story_tracking] Polling started for story: {story_id}")
+            return make_response(jsonify({
+                'status': 'success',
+                'message': 'Polling started successfully',
+                'data': updated_story
+            }), 200)
+            
+        except Exception as e:
+            print(f"[DEBUG] [api_gateway] [start_story_tracking] Error: {str(e)}")
+            logger.error(f"Error starting polling: {str(e)}")
+            return make_response(jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500)
+
+@story_tracking_ns.route('/stop')
+class StopStoryTracking(Resource):
+    @token_required
+    def post(self):
+        """Stop polling for a tracked story.
+        Requires a valid JWT token in the Authorization header.
+        Disables polling for a specific tracked story.
+        Expected JSON payload:
+        {
+            'story_id': str (required)
+        }
+        Returns:
+            dict: Contains updated story details and success status.
+            int: HTTP 200 on success, 400 on validation error, 404 if story not found, 500 on server error.
+        """
+        try:
+            print("[DEBUG] [api_gateway] [stop_story_tracking] Called")
+            auth_header = request.headers.get('Authorization')
+            token = auth_header.split()[1]
+            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Decoding token: {token[:10]}...")
+            payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
+            user_id = payload.get('sub')
+            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Stopping polling for user: {user_id}")
+            
+            data = request.get_json()
+            story_id = data.get('story_id')
+            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Story ID: {story_id}")
+            
+            if not story_id:
+                print("[DEBUG] [api_gateway] [stop_story_tracking] Story ID missing in request")
+                return make_response(jsonify({
+                    'status': 'error',
+                    'message': 'Story ID is required'
+                }), 400)
+            
+            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Calling toggle_polling with user_id: {user_id}, story_id: {story_id}, enable=False")
+            from backend.microservices.story_tracking_service import toggle_polling
+            updated_story = toggle_polling(user_id, story_id, enable=False)
+            
+            if not updated_story:
+                print(f"[DEBUG] [api_gateway] [stop_story_tracking] No story found with ID {story_id} for user {user_id}")
+                return make_response(jsonify({
+                    'status': 'error',
+                    'message': 'Story not found or unauthorized'
+                }), 404)
+            
+            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Polling stopped for story: {story_id}")
+            return make_response(jsonify({
+                'status': 'success',
+                'message': 'Polling stopped successfully',
+                'data': updated_story
+            }), 200)
+            
+        except Exception as e:
+            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Error: {str(e)}")
+            logger.error(f"Error stopping polling: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
                 'message': str(e)
