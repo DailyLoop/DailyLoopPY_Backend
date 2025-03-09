@@ -141,7 +141,7 @@ def get_keywords(text, num_keywords=1):
 
 
 @log_exception(logger)
-def process_articles(session_id):
+def process_articles(article_ids,user_id):
     """
     Processes a batch of articles associated with a specific session ID.
     
@@ -152,19 +152,60 @@ def process_articles(session_id):
     4. Extracts keywords for filtering.
     
     Args:
-        session_id (str): The unique identifier for the user session.
+        article_ids (list): A list of article IDs to process.
 
     Returns:
         list: A list of dictionaries containing processed article data.
     """
     try:
-        history_result = supabase.table("user_search_history").select("news_id").eq("session_id", session_id).execute()
-        article_ids = [record["news_id"] for record in history_result.data]
+        # history_result = supabase.table("user_search_history").select("news_id").eq("session_id", session_id).execute()
+        # article_ids = [record["news_id"] for record in history_result.data]
+
+        # articles = []
+        # if article_ids:
+        #     result = supabase.table("news_articles").select("*").in_("id", article_ids).execute()
+        #     articles = result.data
+        
 
         articles = []
-        if article_ids:
+
+        # Step 1: Fetch the news_ids from user_bookmarks for the given user_id
+        bookmark_result = supabase.table("user_bookmarks").select("news_id").eq("user_id", user_id).execute()
+        bookmark_result = supabase.table("user_bookmarks").select("id, news_id").eq("user_id", user_id).execute()
+
+        bookmark_records = {}
+        if bookmark_result.data:
+            bookmark_records = {item["news_id"]: item["id"] for item in bookmark_result.data}
+
+
+        bookmarked_news_ids = set(item["news_id"] for item in bookmark_result.data) if bookmark_result.data else set()
+
+        print(f"Bookmarked news IDs: {bookmarked_news_ids}")
+        print(f"Article IDs: {article_ids}")
+
+        # Step 2: Fetch all articles from news_articles using the article_ids
+        if article_ids:  # Assuming article_ids is defined or fetched earlier
             result = supabase.table("news_articles").select("*").in_("id", article_ids).execute()
             articles = result.data
+
+        # Step 3: Add the 'bookmarked' key to each article
+        for article in articles:
+            # article["bookmarked_id"] = article["id"] if article["id"] in bookmarked_news_ids else None
+            article["bookmarked_id"] = bookmark_records.get(article["id"], None)
+
+        # # If article_ids isn't defined earlier, you can fetch it here as well
+        # if not article_ids and bookmark_result.data:
+        #     article_ids = [item["news_id"] for item in bookmark_result.data]
+        #     result = supabase.table("news_articles").select("*").in_("id", article_ids).execute()
+        #     articles = result.data
+        #     for article in articles:
+        #         article["bookmarked"] = "yes"  # All articles here are bookmarked
+        
+
+
+
+      
+        print(articles)
 
         summarized_articles = []
         for article in articles:
@@ -189,7 +230,8 @@ def process_articles(session_id):
                 'urlToImage': article.get('image'),
                 'content': article.get('content', ''),
                 'summary': summary,
-                'filter_keywords': get_keywords(article.get('content', ''))
+                'filter_keywords': get_keywords(article.get('content', '')),
+                'bookmarked_id': article.get('bookmarked_id', None)
             })
 
         return summarized_articles

@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """API Gateway for the News Aggregator Backend
 
@@ -237,35 +236,59 @@ class NewsFetch(Resource):
                 'message': str(e)
             }), 500)
 
-
 @news_ns.route('/process')
 class NewsProcess(Resource):
-    @news_ns.param('session_id', 'Session ID for tracking requests')
+    @news_ns.param('session_id', 'Session ID for tracking requests (optional)')
     def post(self):
         """Process and summarize a batch of articles.
         
-        This endpoint processes articles associated with the provided session ID,
-        generating summaries and performing any necessary data transformations.
+        This endpoint processes articles based on the provided article IDs in the request body,
+        generating summaries and checking bookmark status for the user if authenticated.
         
-        Args:
-            session_id (str): Session ID for tracking the request and identifying articles.
-            
         Returns:
             dict: Contains processed articles data and success status.
             int: HTTP 200 on success, 500 on error.
         """
         try:
             session_id = request.args.get('session_id')
-            print(f"[DEBUG] [api_gateway] [news_process] Called with session_id: {session_id}")
+            
+            # Try to get user_id from JWT token if it exists
+            user_id = None
+            auth_header = request.headers.get('Authorization')
+            if auth_header:
+                try:
+                    token = auth_header.split()[1]  # Extract token from 'Bearer <token>'
+                    payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
+                    user_id = payload.get('sub')
+                    print(f"[DEBUG] [api_gateway] [news_process] Extracted user_id from token: {user_id}")
+                except Exception as e:
+                    print(f"[DEBUG] [api_gateway] [news_process] Could not extract user_id from token: {str(e)}")
+            
+            print(f"[DEBUG] [api_gateway] [news_process] Called with session_id: {session_id}, user_id: {user_id}")
+            
+            # Get article_ids from request body
+            request_data = request.get_json()
+            article_ids = request_data.get('article_ids', [])
+            
+            print(f"[DEBUG] [api_gateway] [news_process] Article IDs from request: {article_ids}")
+            
+            if not article_ids:
+                return {
+                    'status': 'error',
+                    'message': 'No article IDs provided in request body'
+                }, 400
+                
             print("[DEBUG] [api_gateway] [news_process] Processing articles...")
-            summarized_articles = process_articles(session_id)
+            summarized_articles = process_articles(article_ids, user_id)
             print(f"[DEBUG] [api_gateway] [news_process] Processed {len(summarized_articles) if summarized_articles else 0} articles")
+            
             return {
                 'status': 'success',
                 'message': 'Articles processed and summarized successfully',
-                'data' : summarized_articles,
+                'data': summarized_articles,
                 'session_id': session_id
             }, 200
+            
         except Exception as e:
             print(f"[DEBUG] [api_gateway] [news_process] Error: {str(e)}")
             logger.error(f"Error processing articles: {str(e)}")
