@@ -7,7 +7,9 @@ CREATE TABLE tracked_stories (
   user_id UUID NOT NULL REFERENCES auth.users(id),
   keyword VARCHAR(255) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  last_updated TIMESTAMP NOT NULL DEFAULT NOW()
+  last_updated TIMESTAMP NOT NULL DEFAULT NOW(),
+  is_polling BOOLEAN NOT NULL DEFAULT FALSE,
+  last_polled_at TIMESTAMP
 );
 
 -- Table for articles related to tracked stories
@@ -21,6 +23,7 @@ CREATE TABLE tracked_story_articles (
 -- Index for faster lookups
 CREATE INDEX idx_tracked_stories_user_id ON tracked_stories(user_id);
 CREATE INDEX idx_tracked_stories_keyword ON tracked_stories(keyword);
+CREATE INDEX idx_tracked_stories_polling ON tracked_stories(is_polling);
 CREATE INDEX idx_tracked_story_articles_story_id ON tracked_story_articles(tracked_story_id);
 
 -- RLS Policies for tracked_stories

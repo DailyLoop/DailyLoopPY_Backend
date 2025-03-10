@@ -38,3 +38,6 @@ pytest
 
 flask_cors
 flask_restx
+
+# Scheduling & Background Tasks
+schedule
