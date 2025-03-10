@@ -19,5 +19,5 @@ EXPOSE 8080
 
 # Run the API Gateway.
 # Cloud Run will set PORT, so we use that environment variable.
-# CMD ["python", "backend/api_gateway/api_gateway.py"]
-CMD ["./start-services.sh"]
+CMD ["python", "backend/api_gateway/api_gateway.py"]
+# CMD ["./start-services.sh"]
