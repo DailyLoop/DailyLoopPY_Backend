@@ -16,8 +16,13 @@ Environment Variables Required:
 
 import os
 import datetime
+import logging
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Load environment variables from .env file
 load_dotenv('../../../.env')
@@ -26,6 +31,8 @@ load_dotenv('../../../.env')
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")  # Using anon key for server-side operations
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+logger.info("Bookmark Service initialized with Supabase configuration")
 
 def add_bookmark(user_id, news_id):
     """
@@ -44,6 +51,7 @@ def add_bookmark(user_id, news_id):
     Raises:
         Exception: If there's an error during the database operation
     """
+    logger.info(f"Adding bookmark for user {user_id} to article {news_id}")
     try:
         # Insert a new bookmark record linking user to article
         result = supabase.table("user_bookmarks").insert({
@@ -52,9 +60,11 @@ def add_bookmark(user_id, news_id):
         }).execute()
         
         # Return the first data item if available, otherwise None
+        bookmark_id = result.data[0]["id"] if result.data else None
+        logger.info(f"Successfully added bookmark with ID: {bookmark_id}")
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error adding bookmark: {str(e)}")
+        logger.error(f"Error adding bookmark: {str(e)}")
         # Re-raise the exception for proper error handling upstream
         raise e
 
@@ -77,6 +87,7 @@ def get_user_bookmarks(user_id):
     Raises:
         Exception: If there's an error during the database operation
     """
+    logger.info(f"Retrieving bookmarks for user {user_id}")
     try:
         # Query user_bookmarks and join with news_articles to get full article details
         # This uses Supabase's foreign key relationships to perform the join
@@ -95,10 +106,11 @@ def get_user_bookmarks(user_id):
             article = item["news_articles"]
             article["bookmark_id"] = item["id"]  # Add bookmark ID to article for reference
             bookmarks.append(article)
-            
+        
+        logger.info(f"Retrieved {len(bookmarks)} bookmarks for user {user_id}")
         return bookmarks
     except Exception as e:
-        print(f"Error fetching bookmarks: {str(e)}")
+        logger.error(f"Error fetching bookmarks: {str(e)}")
         # Re-raise the exception for proper error handling upstream
         raise e
 
@@ -121,6 +133,7 @@ def delete_bookmark(user_id, bookmark_id):
     Raises:
         Exception: If there's an error during the database operation
     """
+    logger.info(f"Deleting bookmark {bookmark_id} for user {user_id}")
     try:
         # Delete the bookmark, ensuring it belongs to the specified user
         # This double condition prevents users from deleting other users' bookmarks
@@ -131,8 +144,10 @@ def delete_bookmark(user_id, bookmark_id):
             .execute()
         
         # Return True if at least one record was deleted, False otherwise
-        return len(result.data) > 0
+        success = len(result.data) > 0
+        logger.info(f"Bookmark deletion {'successful' if success else 'unsuccessful'}")
+        return success
     except Exception as e:
-        print(f"Error deleting bookmark: {str(e)}")
+        logger.error(f"Error deleting bookmark: {str(e)}")
         # Re-raise the exception for proper error handling upstream
         raise e

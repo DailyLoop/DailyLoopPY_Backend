@@ -39,16 +39,16 @@ class Bookmark(Resource):
             int: HTTP 200 on success, 500 on error.
         """
         try:
-            print("[DEBUG] [api_gateway] [get_bookmarks] Called")
+            logger.info("Get bookmarks endpoint called")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [get_bookmarks] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [get_bookmarks] Getting bookmarks for user: {user_id}")
+            logger.info(f"Getting bookmarks for user: {user_id}")
 
             bookmarks = get_user_bookmarks(user_id)
-            print(f"[DEBUG] [api_gateway] [get_bookmarks] Found {len(bookmarks)} bookmarks")
+            logger.debug(f"Found {len(bookmarks)} bookmarks")
 
             return {
                 'status': 'success',
@@ -56,7 +56,6 @@ class Bookmark(Resource):
             }, 200
 
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [get_bookmarks] Error: {str(e)}")
             logger.error(f"Error fetching bookmarks: {str(e)}")
             return {
                 'status': 'error',
@@ -80,25 +79,25 @@ class Bookmark(Resource):
             int: HTTP 201 on success, 400 on validation error, 500 on server error.
         """
         try:
-            print("[DEBUG] [api_gateway] [add_bookmark] Called")
+            logger.info("Add bookmark endpoint called")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [add_bookmark] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [add_bookmark] Adding bookmark for user: {user_id}")
+            logger.info(f"Adding bookmark for user: {user_id}")
 
             data = request.get_json()
             news_id = data.get('news_id')
-            print(f"[DEBUG] [api_gateway] [add_bookmark] News article ID: {news_id}")
+            logger.debug(f"News article ID: {news_id}")
 
             if not news_id:
-                print("[DEBUG] [api_gateway] [add_bookmark] News article ID missing in request")
+                logger.warning("News article ID missing in request")
                 return {'error': 'News article ID is required'}, 400
 
-            print(f"[DEBUG] [api_gateway] [add_bookmark] Adding bookmark for user {user_id}, article {news_id}")
+            logger.info(f"Adding bookmark for user {user_id}, article {news_id}")
             bookmark = add_bookmark(user_id, news_id)
-            print(f"[DEBUG] [api_gateway] [add_bookmark] Bookmark added with ID: {bookmark['id'] if isinstance(bookmark, dict) else bookmark}")
+            logger.debug(f"Bookmark added with ID: {bookmark['id'] if isinstance(bookmark, dict) else bookmark}")
             
             return {
                 'status': 'success',
@@ -109,7 +108,6 @@ class Bookmark(Resource):
             }, 201
 
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [add_bookmark] Error: {str(e)}")
             logger.error(f"Error adding bookmark: {str(e)}")
             return {
                 'status': 'error',
@@ -133,16 +131,16 @@ class BookmarkDelete(Resource):
             int: HTTP 200 on success, 500 on error.
         """
         try:
-            print(f"[DEBUG] [api_gateway] [delete_bookmark] Called for bookmark: {bookmark_id}")
+            logger.info(f"Delete bookmark endpoint called for bookmark: {bookmark_id}")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [delete_bookmark] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [delete_bookmark] Deleting bookmark {bookmark_id} for user {user_id}")
+            logger.info(f"Deleting bookmark {bookmark_id} for user {user_id}")
 
             result = delete_bookmark(user_id, bookmark_id)
-            print(f"[DEBUG] [api_gateway] [delete_bookmark] Deletion result: {result}")
+            logger.debug(f"Deletion result: {result}")
             
             return {
                 'status': 'success',
@@ -150,7 +148,6 @@ class BookmarkDelete(Resource):
             }, 200
 
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [delete_bookmark] Error: {str(e)}")
             logger.error(f"Error removing bookmark: {str(e)}")
             return {
                 'status': 'error',

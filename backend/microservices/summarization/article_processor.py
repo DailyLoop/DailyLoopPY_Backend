@@ -33,6 +33,8 @@ SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
+logger.info("Article Processor Service initialized with Supabase configuration")
+
 @log_exception(logger)
 def process_articles(article_ids, user_id):
     """
@@ -55,6 +57,7 @@ def process_articles(article_ids, user_id):
         articles = []
 
         # Step 1: Fetch the news_ids from user_bookmarks for the given user_id
+        logger.debug(f"Fetching bookmarks for user {user_id}")
         bookmark_result = supabase.table("user_bookmarks").select("id, news_id").eq("user_id", user_id).execute()
 
         bookmark_records = {}
@@ -63,19 +66,21 @@ def process_articles(article_ids, user_id):
 
         bookmarked_news_ids = set(item["news_id"] for item in bookmark_result.data) if bookmark_result.data else set()
 
-        print(f"Bookmarked news IDs: {bookmarked_news_ids}")
-        print(f"Article IDs: {article_ids}")
+        logger.debug(f"Bookmarked news IDs: {bookmarked_news_ids}")
+        logger.debug(f"Article IDs to process: {article_ids}")
 
         # Step 2: Fetch all articles from news_articles using the article_ids
         if article_ids:  # Assuming article_ids is defined or fetched earlier
+            logger.debug(f"Fetching {len(article_ids)} articles from database")
             result = supabase.table("news_articles").select("*").in_("id", article_ids).execute()
             articles = result.data
 
         # Step 3: Add the 'bookmarked' key to each article
+        logger.debug(f"Adding bookmark information to {len(articles)} articles")
         for article in articles:
             article["bookmarked_id"] = bookmark_records.get(article["id"], None)
       
-        print(articles)
+        logger.debug(f"Retrieved {len(articles)} articles for processing")
 
         summarized_articles = []
         for article in articles:
@@ -83,13 +88,17 @@ def process_articles(article_ids, user_id):
             
             content = article.get('content')
             if not content:
+                logger.debug(f"No content found for article, fetching from URL: {article['url']}")
                 content = fetch_article_content(article['url'])
             
             if content:
+                logger.debug("Generating summary from fetched content")
                 summary = run_summarization(content)
             else:
+                logger.debug("Generating summary from existing content")
                 summary = run_summarization(article.get('content', ''))
             
+            logger.debug("Extracting keywords for filtering")
             summarized_articles.append({
                 'id': article['id'],
                 'title': article['title'],
@@ -104,6 +113,7 @@ def process_articles(article_ids, user_id):
                 'bookmarked_id': article.get('bookmarked_id', None)
             })
 
+        logger.info(f"Successfully processed {len(summarized_articles)} articles")
         return summarized_articles
 
     except Exception as e:

@@ -8,6 +8,10 @@ This module contains the API routes for health check operations.
 # Standard library imports
 from flask import jsonify, request
 from flask_restx import Resource, Namespace
+from backend.core.utils import setup_logger
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 # Create health namespace
 health_ns = Namespace('health', description='Health check operations')
@@ -21,5 +25,5 @@ class HealthCheck(Resource):
             dict: A dictionary containing the health status.
             int: HTTP 200 status code indicating success.
         """
-        print("[DEBUG] [api_gateway] [health_check] Called")
+        logger.info("Health check endpoint called")
         return {"status": "API Gateway is healthy"}, 200

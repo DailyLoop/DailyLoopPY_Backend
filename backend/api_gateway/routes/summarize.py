@@ -11,6 +11,10 @@ from flask_restx import Resource, Namespace, fields
 
 # Import microservices and utilities
 from backend.microservices.summarization_service import run_summarization
+from backend.core.utils import setup_logger
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 # Create summarize namespace
 summarize_ns = Namespace('summarize', description='Text summarization operations')
@@ -33,10 +37,10 @@ class Summarize(Resource):
             dict: Contains the generated summary.
             int: HTTP 200 status code on success.
         """
-        print("[DEBUG] [api_gateway] [summarize] Called")
+        logger.info("Summarize endpoint called")
         data = request.get_json()
         article_text = data.get('article_text', '')
-        print(f"[DEBUG] [api_gateway] [summarize] Summarizing text of length: {len(article_text)}")
+        logger.debug(f"Summarizing text of length: {len(article_text)}")
         summary = run_summarization(article_text)
-        print(f"[DEBUG] [api_gateway] [summarize] Summarization complete, summary length: {len(summary)}")
+        logger.debug(f"Summarization complete, summary length: {len(summary)}")
         return {"summary": summary}, 200

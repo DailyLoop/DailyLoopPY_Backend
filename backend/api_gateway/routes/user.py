@@ -14,6 +14,10 @@ import jwt
 from backend.microservices.auth_service import load_users
 from functools import wraps
 from flask import current_app
+from backend.core.utils import setup_logger
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 # Create user namespace
 user_ns = Namespace('api/user', description='User operations')
@@ -45,18 +49,18 @@ class UserProfile(Resource):
             dict: User profile data including id, username, email, and names.
             int: HTTP 200 on success, 404 if user not found.
         """
-        print("[DEBUG] [api_gateway] [user_profile] Called")
+        logger.info("User profile endpoint called")
         auth_header = request.headers.get('Authorization')
         token = auth_header.split()[1]
-        print(f"[DEBUG] [api_gateway] [user_profile] Decoding token: {token[:10]}...")
+        logger.debug(f"Decoding token: {token[:10]}...")
         payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-        print(f"[DEBUG] [api_gateway] [user_profile] Looking up user with ID: {payload.get('sub')}")
+        logger.debug(f"Looking up user with ID: {payload.get('sub')}")
         
         users = load_users()
         user = next((u for u in users if u.get('id') == payload.get('sub')), None)
         if not user:
-            print(f"[DEBUG] [api_gateway] [user_profile] User not found with ID: {payload.get('sub')}")
+            logger.warning(f"User not found with ID: {payload.get('sub')}")
             return {'error': 'User not found'}, 404
             
-        print(f"[DEBUG] [api_gateway] [user_profile] Found user: {user.get('username')}")
+        logger.debug(f"Found user: {user.get('username')}")
         return {k: user[k] for k in user if k != 'password'}, 200

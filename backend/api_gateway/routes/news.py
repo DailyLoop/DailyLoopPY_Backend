@@ -14,6 +14,10 @@ import jwt
 from backend.microservices.news_fetcher import fetch_news
 from backend.microservices.news_storage import store_article_in_supabase, log_user_search
 from backend.microservices.summarization_service import process_articles
+from backend.core.utils import setup_logger
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 # Create news namespace
 news_ns = Namespace('api/news', description='News operations')
@@ -42,31 +46,32 @@ class NewsFetch(Resource):
             keyword = request.args.get('keyword', '')
             user_id = request.args.get('user_id')  # optional
             session_id = request.args.get('session_id')
-            print(f"[DEBUG] [api_gateway] [news_fetch] Called with keyword: '{keyword}', user_id: {user_id}, session_id: {session_id}")
+            logger.info(f"News fetch endpoint called with keyword: '{keyword}', user_id: {user_id}, session_id: {session_id}")
 
-            print(f"[DEBUG] [api_gateway] [news_fetch] Fetching news articles for keyword: '{keyword}'")
+            logger.info(f"Fetching news articles for keyword: '{keyword}'")
             articles = fetch_news(keyword)  # This returns a list of articles.
-            print(f"[DEBUG] [api_gateway] [news_fetch] Found {len(articles) if articles else 0} articles")
+            logger.info(f"Found {len(articles) if articles else 0} articles for keyword: '{keyword}'")
+
             stored_article_ids = []
 
             for article in articles:
-                print(f"[DEBUG] [api_gateway] [news_fetch] Storing article: {article.get('title', 'No title')}")
+                logger.debug(f"Storing article: {article.get('title', 'No title')}")
                 article_id = store_article_in_supabase(article)
                 stored_article_ids.append(article_id)
-                print(f"[DEBUG] [api_gateway] [news_fetch] Stored article with ID: {article_id}")
+                logger.debug(f"Stored article with ID: {article_id}")
 
                 if user_id:
-                    print(f"[DEBUG] [api_gateway] [news_fetch] Logging search for user {user_id}, article {article_id}")
+                    logger.debug(f"Logging search for user {user_id}, article {article_id}")
                     log_user_search(user_id, article_id, session_id)
 
-            print(f"[DEBUG] [api_gateway] [news_fetch] Returning {len(stored_article_ids)} article IDs")
+            logger.info(f"Returning {len(stored_article_ids)} article IDs")
             return make_response(jsonify({
                 'status': 'success',
                 'data': stored_article_ids
             }), 200)
 
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [news_fetch] Error: {str(e)}")
+            logger.error(f"Error fetching news: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
                 'message': str(e)
@@ -98,17 +103,17 @@ class NewsProcess(Resource):
                     from flask import current_app
                     payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
                     user_id = payload.get('sub')
-                    print(f"[DEBUG] [api_gateway] [news_process] Extracted user_id from token: {user_id}")
+                    logger.debug(f"Extracted user_id from token: {user_id}")
                 except Exception as e:
-                    print(f"[DEBUG] [api_gateway] [news_process] Could not extract user_id from token: {str(e)}")
+                    logger.warning(f"Could not extract user_id from token: {str(e)}")
             
-            print(f"[DEBUG] [api_gateway] [news_process] Called with session_id: {session_id}, user_id: {user_id}")
+            logger.info(f"News process endpoint called with session_id: {session_id}, user_id: {user_id}")
             
             # Get article_ids from request body
             request_data = request.get_json()
             article_ids = request_data.get('article_ids', [])
             
-            print(f"[DEBUG] [api_gateway] [news_process] Article IDs from request: {article_ids}")
+            logger.debug(f"Article IDs from request: {article_ids}")
             
             if not article_ids:
                 return {
@@ -116,9 +121,9 @@ class NewsProcess(Resource):
                     'message': 'No article IDs provided in request body'
                 }, 400
                 
-            print("[DEBUG] [api_gateway] [news_process] Processing articles...")
+            logger.info("Processing articles...")
             summarized_articles = process_articles(article_ids, user_id)
-            print(f"[DEBUG] [api_gateway] [news_process] Processed {len(summarized_articles) if summarized_articles else 0} articles")
+            logger.info(f"Processed {len(summarized_articles) if summarized_articles else 0} articles")
             
             return {
                 'status': 'success',
@@ -128,10 +133,6 @@ class NewsProcess(Resource):
             }, 200
             
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [news_process] Error: {str(e)}")
-            # Logger should be imported from the main app
-            from backend.core.utils import setup_logger
-            logger = setup_logger(__name__)
             logger.error(f"Error processing articles: {str(e)}")
             return {
                 'status': 'error',

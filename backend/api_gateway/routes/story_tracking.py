@@ -50,25 +50,26 @@ class StoryTracking(Resource):
             int: HTTP 200 on success, 400 if keyword is missing, 500 on error.
         """
         try:
-            print("[DEBUG] [api_gateway] [story_tracking] Story tracking get endpoint called")
+            logger.debug("Story tracking get endpoint called")
             keyword = request.args.get('keyword')
-            print(f"[DEBUG] [api_gateway] [story_tracking] Requested keyword: '{keyword}'")
+            logger.debug(f"Requested keyword: '{keyword}'")
             if not keyword:
-                print("[DEBUG] [api_gateway] [story_tracking] Keyword parameter missing")
+                logger.warning("Keyword parameter missing")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Keyword parameter is required'
                 }), 400)
 
-            print(f"[DEBUG] [api_gateway] [story_tracking] Fetching news for keyword: '{keyword}'")
+            logger.info(f"Fetching news for keyword: '{keyword}'")
             articles = fetch_news(keyword)
-            print(f"[DEBUG] [api_gateway] [story_tracking] Found {len(articles) if articles else 0} articles")
+            logger.info(f"Found {len(articles) if articles else 0} articles for keyword: '{keyword}'")
+            
             
             processed_articles = []
             for article in articles:
-                print(f"[DEBUG] [api_gateway] [story_tracking] Processing article: {article.get('title', 'No title')}")
+                logger.debug(f"Processing article: {article.get('title', 'No title')}")
                 article_id = store_article_in_supabase(article)
-                print(f"[DEBUG] [api_gateway] [story_tracking] Stored article with ID: {article_id}")
+                logger.debug(f"Stored article with ID: {article_id}")
                 processed_articles.append({
                     'id': article_id,
                     'title': article.get('title'),
@@ -77,14 +78,13 @@ class StoryTracking(Resource):
                     'publishedAt': article.get('publishedAt', datetime.now().isoformat())
                 })
 
-            print(f"[DEBUG] [api_gateway] [story_tracking] Returning {len(processed_articles)} processed articles")
+            logger.info(f"Returning {len(processed_articles)} processed articles")
             return make_response(jsonify({
                 'status': 'success',
                 'articles': processed_articles
             }), 200)
 
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [story_tracking] Error: {str(e)}")
             logger.error(f"Error in story tracking: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
@@ -109,35 +109,35 @@ class StoryTracking(Resource):
             int: HTTP 201 on success, 400 on validation error, 500 on server error.
         """
         try:
-            print("[DEBUG] [api_gateway] [story_tracking] Called")
+            logger.debug("Story tracking post endpoint called")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [story_tracking] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             # Import app from main module to access config
             from flask import current_app
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [story_tracking] Creating tracked story for user: {user_id}")
+            logger.info(f"Creating tracked story for user: {user_id}")
             
             data = request.get_json()
             keyword = data.get('keyword')
             source_article_id = data.get('sourceArticleId')
-            print(f"[DEBUG] [api_gateway] [story_tracking] Story details - Keyword: '{keyword}', Source article: {source_article_id}")
+            logger.debug(f"Story details - Keyword: '{keyword}', Source article: {source_article_id}")
             
             if not keyword:
-                print("[DEBUG] [api_gateway] [story_tracking] Keyword parameter missing in request")
+                logger.warning("Keyword parameter missing in request")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Keyword is required'
                 }), 400)
             
-            print(f"[DEBUG] [api_gateway] [story_tracking] Calling create_tracked_story with user_id: {user_id}, keyword: '{keyword}'")
+            logger.debug(f"Calling create_tracked_story with user_id: {user_id}, keyword: '{keyword}'")
             tracked_story = create_tracked_story(user_id, keyword, source_article_id)
-            print(f"[DEBUG] [api_gateway] [story_tracking] Tracked story created with ID: {tracked_story['id'] if tracked_story else 'unknown'}")
+            logger.info(f"Tracked story created with ID: {tracked_story['id'] if tracked_story else 'unknown'}")
             
-            print(f"[DEBUG] [api_gateway] [story_tracking] Getting full story details for story: {tracked_story['id']}")
+            logger.debug(f"Getting full story details for story: {tracked_story['id']}")
             story_with_articles = get_story_details(tracked_story['id'])
-            print(f"[DEBUG] [api_gateway] [story_tracking] Found {len(story_with_articles.get('articles', [])) if story_with_articles else 0} related articles")
+            logger.info(f"Found {len(story_with_articles.get('articles', [])) if story_with_articles else 0} related articles")
             
             return make_response(jsonify({
                 'status': 'success',
@@ -145,7 +145,6 @@ class StoryTracking(Resource):
             }), 201)
             
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [story_tracking] Error: {str(e)}")
             logger.error(f"Error creating tracked story: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
@@ -168,38 +167,38 @@ class StartStoryTracking(Resource):
             int: HTTP 200 on success, 400 on validation error, 404 if story not found, 500 on server error.
         """
         try:
-            print("[DEBUG] [api_gateway] [start_story_tracking] Called")
+            logger.debug("Start story tracking endpoint called")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [start_story_tracking] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             # Import app from main module to access config
             from flask import current_app
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [start_story_tracking] Starting polling for user: {user_id}")
+            logger.info(f"Starting polling for user: {user_id}")
             
             data = request.get_json()
             story_id = data.get('story_id')
-            print(f"[DEBUG] [api_gateway] [start_story_tracking] Story ID: {story_id}")
+            logger.debug(f"Story ID: {story_id}")
             
             if not story_id:
-                print("[DEBUG] [api_gateway] [start_story_tracking] Story ID missing in request")
+                logger.warning("Story ID missing in request")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Story ID is required'
                 }), 400)
             
-            print(f"[DEBUG] [api_gateway] [start_story_tracking] Calling toggle_polling with user_id: {user_id}, story_id: {story_id}, enable=True")
+            logger.debug(f"Calling toggle_polling with user_id: {user_id}, story_id: {story_id}, enable=True")
             updated_story = toggle_polling(user_id, story_id, enable=True)
             
             if not updated_story:
-                print(f"[DEBUG] [api_gateway] [start_story_tracking] No story found with ID {story_id} for user {user_id}")
+                logger.warning(f"No story found with ID {story_id} for user {user_id}")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Story not found or unauthorized'
                 }), 404)
             
-            print(f"[DEBUG] [api_gateway] [start_story_tracking] Polling started for story: {story_id}")
+            logger.info(f"Polling started for story: {story_id}")
             return make_response(jsonify({
                 'status': 'success',
                 'message': 'Polling started successfully',
@@ -207,7 +206,6 @@ class StartStoryTracking(Resource):
             }), 200)
             
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [start_story_tracking] Error: {str(e)}")
             logger.error(f"Error starting polling: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
@@ -230,38 +228,38 @@ class StopStoryTracking(Resource):
             int: HTTP 200 on success, 400 on validation error, 404 if story not found, 500 on server error.
         """
         try:
-            print("[DEBUG] [api_gateway] [stop_story_tracking] Called")
+            logger.debug("Stop story tracking endpoint called")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             # Import app from main module to access config
             from flask import current_app
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Stopping polling for user: {user_id}")
+            logger.info(f"Stopping polling for user: {user_id}")
             
             data = request.get_json()
             story_id = data.get('story_id')
-            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Story ID: {story_id}")
+            logger.debug(f"Story ID: {story_id}")
             
             if not story_id:
-                print("[DEBUG] [api_gateway] [stop_story_tracking] Story ID missing in request")
+                logger.warning("Story ID missing in request")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Story ID is required'
                 }), 400)
             
-            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Calling toggle_polling with user_id: {user_id}, story_id: {story_id}, enable=False")
+            logger.debug(f"Calling toggle_polling with user_id: {user_id}, story_id: {story_id}, enable=False")
             updated_story = toggle_polling(user_id, story_id, enable=False)
             
             if not updated_story:
-                print(f"[DEBUG] [api_gateway] [stop_story_tracking] No story found with ID {story_id} for user {user_id}")
+                logger.warning(f"No story found with ID {story_id} for user {user_id}")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Story not found or unauthorized'
                 }), 404)
             
-            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Polling stopped for story: {story_id}")
+            logger.info(f"Polling stopped for story: {story_id}")
             return make_response(jsonify({
                 'status': 'success',
                 'message': 'Polling stopped successfully',
@@ -269,7 +267,6 @@ class StopStoryTracking(Resource):
             }), 200)
             
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [stop_story_tracking] Error: {str(e)}")
             logger.error(f"Error stopping polling: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
@@ -290,19 +287,19 @@ class UserStoryTracking(Resource):
             int: HTTP 200 on success, 500 on error.
         """
         try:
-            print("[DEBUG] [api_gateway] [user_story_tracking] Called")
+            logger.debug("User story tracking endpoint called")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [user_story_tracking] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             # Import app from main module to access config
             from flask import current_app
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [user_story_tracking] Getting tracked stories for user: {user_id}")
+            logger.info(f"Getting tracked stories for user: {user_id}")
             
-            print(f"[DEBUG] [api_gateway] [user_story_tracking] Calling get_tracked_stories")
+            logger.debug(f"Calling get_tracked_stories")
             tracked_stories = get_tracked_stories(user_id)
-            print(f"[DEBUG] [api_gateway] [user_story_tracking] Found {len(tracked_stories)} tracked stories")
+            logger.info(f"Found {len(tracked_stories)} tracked stories")
             
             return make_response(jsonify({
                 'status': 'success',
@@ -310,7 +307,6 @@ class UserStoryTracking(Resource):
             }), 200)
             
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [user_story_tracking] Error: {str(e)}")
             logger.error(f"Error getting tracked stories: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
@@ -334,26 +330,25 @@ class StoryTrackingDetail(Resource):
             int: HTTP 200 on success, 404 if story not found, 500 on error.
         """
         try:
-            print(f"[DEBUG] [api_gateway] [story_tracking_detail] Called for story: {story_id}")
-            print(f"[DEBUG] [api_gateway] [story_tracking_detail] Calling get_story_details for story: {story_id}")
+            logger.debug(f"Story tracking detail endpoint called for story: {story_id}")
+            logger.debug(f"Calling get_story_details for story: {story_id}")
             story = get_story_details(story_id)
             
             if not story:
-                print(f"[DEBUG] [api_gateway] [story_tracking_detail] No story found with ID: {story_id}")
+                logger.warning(f"No story found with ID: {story_id}")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Tracked story not found'
                 }), 404)
             
-            print(f"[DEBUG] [api_gateway] [story_tracking_detail] Found story: {story['keyword']}")
-            print(f"[DEBUG] [api_gateway] [story_tracking_detail] Story has {len(story.get('articles', []))} articles")
+            logger.info(f"Found story: {story['keyword']}")
+            logger.debug(f"Story has {len(story.get('articles', []))} articles")
             return make_response(jsonify({
                 'status': 'success',
                 'data': story
             }), 200)
             
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [story_tracking_detail] Error: {str(e)}")
             logger.error(f"Error getting story details: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',
@@ -375,35 +370,34 @@ class StoryTrackingDetail(Resource):
             int: HTTP 200 on success, 404 if story not found, 500 on error.
         """
         try:
-            print(f"[DEBUG] [api_gateway] [delete_story_tracking] Called for story: {story_id}")
+            logger.debug(f"Delete story tracking endpoint called for story: {story_id}")
             auth_header = request.headers.get('Authorization')
             token = auth_header.split()[1]
-            print(f"[DEBUG] [api_gateway] [delete_story_tracking] Decoding token: {token[:10]}...")
+            logger.debug(f"Decoding token: {token[:10]}...")
             # Import app from main module to access config
             from flask import current_app
             payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
             user_id = payload.get('sub')
-            print(f"[DEBUG] [api_gateway] [delete_story_tracking] Deleting tracked story {story_id} for user {user_id}")
+            logger.info(f"Deleting tracked story {story_id} for user {user_id}")
             
-            print(f"[DEBUG] [api_gateway] [delete_story_tracking] Calling delete_tracked_story")
+            logger.debug(f"Calling delete_tracked_story")
             success = delete_tracked_story(user_id, story_id)
-            print(f"[DEBUG] [api_gateway] [delete_story_tracking] Delete result: {success}")
+            logger.debug(f"Delete result: {success}")
             
             if not success:
-                print(f"[DEBUG] [api_gateway] [delete_story_tracking] Failed to delete story or story not found")
+                logger.warning(f"Failed to delete story or story not found")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Failed to delete tracked story or story not found'
                 }), 404)
             
-            print(f"[DEBUG] [api_gateway] [delete_story_tracking] Story deleted successfully")
+            logger.info(f"Story deleted successfully")
             return make_response(jsonify({
                 'status': 'success',
                 'message': 'Tracked story deleted successfully'
             }), 200)
             
         except Exception as e:
-            print(f"[DEBUG] [api_gateway] [delete_story_tracking] Error: {str(e)}")
             logger.error(f"Error deleting tracked story: {str(e)}")
             return make_response(jsonify({
                 'status': 'error',

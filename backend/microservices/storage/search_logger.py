@@ -15,8 +15,13 @@ Environment Variables Required:
 
 import os
 import datetime
+import logging
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Load environment variables from .env file
 load_dotenv('../../../.env')
@@ -25,6 +30,8 @@ load_dotenv('../../../.env')
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")  # Using anon key for server-side operations
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+logger.info("Search Logger Service initialized with Supabase configuration")
 
 def log_user_search(user_id, news_id, session_id):
     """
@@ -41,14 +48,20 @@ def log_user_search(user_id, news_id, session_id):
     Returns:
         dict: The Supabase response object containing the result of the insert operation
     """
-    # Create a timestamp for when the search occurred
-    current_time = datetime.datetime.utcnow().isoformat()
-    
-    # Insert the search record with all required fields
-    result = supabase.table("user_search_history").insert({
-        "user_id": user_id,
-        "news_id": news_id,
-        "searched_at": current_time,
-        "session_id": session_id,
-    }).execute()
-    return result
+    logger.info(f"Logging search event for user {user_id}, article {news_id}, session {session_id}")
+    try:
+        # Create a timestamp for when the search occurred
+        current_time = datetime.datetime.utcnow().isoformat()
+        
+        # Insert the search record with all required fields
+        result = supabase.table("user_search_history").insert({
+            "user_id": user_id,
+            "news_id": news_id,
+            "searched_at": current_time,
+            "session_id": session_id,
+        }).execute()
+        logger.debug(f"Search event logged successfully")
+        return result
+    except Exception as e:
+        logger.error(f"Error logging search event: {str(e)}")
+        raise e
