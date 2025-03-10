@@ -9,8 +9,8 @@ The module uses the Supabase client to interact with the following tables:
 - user_search_history: Tracks user search and article view interactions
 
 Environment Variables Required:
-- VITE_SUPABASE_URL: Supabase project URL
-- VITE_SUPABASE_ANON_KEY: Supabase anonymous key for client operations
+- SUPABASE_URL: Supabase project URL
+- SUPABASE_ANON_KEY: Supabase anonymous key for client operations
 """
 
 import os
@@ -27,9 +27,9 @@ logger.setLevel(logging.INFO)
 load_dotenv('../../../.env')
 
 # Initialize Supabase client with environment variables
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")  # Using anon key for server-side operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")  # Using anon key for server-side operations
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 logger.info("Search Logger Service initialized with Supabase configuration")
 

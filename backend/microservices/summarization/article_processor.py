@@ -29,9 +29,9 @@ logger = setup_logger(__name__)
 load_dotenv('../../.env')  # Optional: Only use this for local development
 
 # Initialize Supabase client
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 logger.info("Article Processor Service initialized with Supabase configuration")
 

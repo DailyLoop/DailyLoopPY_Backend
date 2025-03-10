@@ -21,8 +21,8 @@ Database Tables Used:
 - news_articles: Stores article content and metadata
 
 Environment Variables Required:
-- VITE_SUPABASE_URL: Supabase project URL
-- SUPABASE_SERVICE_ROLE_KEY: Service role key for admin access
+- SUPABASE_URL: Supabase project URL
+- SUPABASE_ANON_KEY: Service role key for admin access
 """
 
 #TODO: Implement proper background processing: Use a task queue like Celery to handle article fetching in the background
@@ -60,14 +60,14 @@ print("[DEBUG] [story_tracking_service] [main] Environment variables loaded")
 
 # Initialize Supabase client with service role key for admin access to bypass RLS
 # RLS (Row Level Security) policies are bypassed when using the service role key
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
 print(f"[DEBUG] [story_tracking_service] [main] Supabase URL: {SUPABASE_URL}")
-print(f"[DEBUG] [story_tracking_service] [main] Supabase Key: {SUPABASE_SERVICE_KEY[:5]}..." if SUPABASE_SERVICE_KEY else "[DEBUG] [story_tracking_service] [main] Supabase Key: None")
+print(f"[DEBUG] [story_tracking_service] [main] Supabase Key: {SUPABASE_ANON_KEY[:5]}..." if SUPABASE_ANON_KEY else "[DEBUG] [story_tracking_service] [main] Supabase Key: None")
 
 # Create Supabase client for database operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 print("[DEBUG] [story_tracking_service] [main] Supabase client initialized")
 

@@ -13,8 +13,8 @@ Usage:
 - Schedule with cron or a process manager
 
 Environment Variables Required:
-- VITE_SUPABASE_URL: Supabase project URL
-- SUPABASE_SERVICE_ROLE_KEY: Service role key for admin access
+- SUPABASE_URL: Supabase project URL
+- SUPABASE_ANON_KEY: Service role key for admin access
 - NEWS_API_KEY: API key for the news service
 - POLLING_INTERVAL: Time in minutes between polling cycles (default: 5)
 """
@@ -43,18 +43,18 @@ load_dotenv()
 logger.info("Environment variables loaded")
 
 # Initialize Supabase client with service role key for admin access
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 POLLING_INTERVAL = int(os.getenv("POLLING_INTERVAL", "5"))  # Default to 5 minutes if not specified
 
 logger.info(f"Supabase URL: {SUPABASE_URL}")
-logger.info(f"Supabase Key: {SUPABASE_SERVICE_KEY[:5]}..." if SUPABASE_SERVICE_KEY else "Supabase Key: None")
+logger.info(f"Supabase Key: {SUPABASE_ANON_KEY[:5]}..." if SUPABASE_ANON_KEY else "Supabase Key: None")
 logger.info(f"News API Key: {NEWS_API_KEY[:5]}..." if NEWS_API_KEY else "News API Key: None")
 logger.info(f"Polling interval: {POLLING_INTERVAL} minutes")
 
 # Create Supabase client for database operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 logger.info("Supabase client initialized")
 
 def get_active_polling_stories():

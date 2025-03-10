@@ -27,11 +27,11 @@ logger.setLevel(logging.INFO)
 load_dotenv()
 
 # Initialize Supabase client with service role key for admin access to bypass RLS
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
 # Create Supabase client for database operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 logger.info("Story Manager Service initialized with Supabase configuration")
 
