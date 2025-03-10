@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the entire project into the container
 COPY . .
 
+# Ensure start-services.sh has execute permissions
+RUN chmod +x start-services.sh
+
 # Expose port 5000 (Cloud Run sets the PORT env variable)
 EXPOSE 8080
 
