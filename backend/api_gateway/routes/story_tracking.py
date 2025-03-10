@@ -34,7 +34,7 @@ story_tracking_ns = Namespace('api/story_tracking', description='Story tracking 
 # Import token_required decorator from utils
 from backend.api_gateway.utils.auth import token_required
 
-@story_tracking_ns.route('/')
+@story_tracking_ns.route('')
 class StoryTracking(Resource):
     @story_tracking_ns.param('keyword', 'Keyword to track for news updates')
     def get(self):
@@ -150,6 +150,25 @@ class StoryTracking(Resource):
                 'status': 'error',
                 'message': str(e)
             }), 500)
+
+@story_tracking_ns.route('', methods=['OPTIONS'])
+class StoryTrackingOptions(Resource):
+    def options(self):
+        """Handle OPTIONS requests for the story tracking endpoint.
+
+        This function sets the necessary CORS headers for preflight requests
+        to the story tracking endpoint.
+
+        Returns:
+            Response: A Flask response object with appropriate CORS headers.
+        """
+        print("[DEBUG] [api_gateway] [story_tracking_options] Called")
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+        print("[DEBUG] [api_gateway] [story_tracking_options] Responding with CORS headers")
+        return response
 
 @story_tracking_ns.route('/start')
 class StartStoryTracking(Resource):
@@ -403,3 +422,5 @@ class StoryTrackingDetail(Resource):
                 'status': 'error',
                 'message': str(e)
             }), 500)
+
+

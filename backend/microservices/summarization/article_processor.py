@@ -18,9 +18,9 @@ from backend.core.utils import setup_logger, log_exception
 from backend.microservices.summarization.content_fetcher import fetch_article_content
 from backend.microservices.summarization.keyword_extractor import get_keywords
 
-# Import the summarization function from the main service
+# Import the summarization function from the utilities module
 # This avoids circular imports while maintaining functionality
-from backend.microservices.summarization_service import run_summarization
+from backend.microservices.summarization.summarization_utils import run_summarization
 
 # Initialize logger
 logger = setup_logger(__name__)
