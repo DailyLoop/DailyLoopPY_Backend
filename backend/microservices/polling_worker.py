@@ -97,7 +97,7 @@ def fetch_news_articles(keyword, since_date=None):
         params = {
             'q': keyword,
             'apiKey': NEWS_API_KEY,
-            'pageSize': 10,  # Limit results to avoid rate limiting
+            'pageSize': 1,  # Limit results to avoid rate limiting
             'language': 'en',  # English articles only
             'sortBy': 'publishedAt'  # Get newest articles first
         }
