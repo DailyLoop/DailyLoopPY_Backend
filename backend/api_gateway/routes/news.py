@@ -9,6 +9,7 @@ This module contains the API routes for news operations including fetching and p
 from flask import jsonify, request, make_response
 from flask_restx import Resource, Namespace
 import jwt
+import traceback
 
 # Import microservices and utilities
 from backend.microservices.news_fetcher import fetch_news
@@ -71,7 +72,9 @@ class NewsFetch(Resource):
             }), 200)
 
         except Exception as e:
-            logger.error(f"Error fetching news: {str(e)}")
+            # Capture the full stack trace
+            stack_trace = traceback.format_exc()
+            logger.error(f"Error fetching news: {str(e)}\nStack trace: {stack_trace}")
             return make_response(jsonify({
                 'status': 'error',
                 'message': str(e)
@@ -133,7 +136,9 @@ class NewsProcess(Resource):
             }, 200
             
         except Exception as e:
-            logger.error(f"Error processing articles: {str(e)}")
+            # Capture the full stack trace
+            stack_trace = traceback.format_exc()
+            logger.error(f"Error processing articles: {str(e)}\nStack trace: {stack_trace}")
             return {
                 'status': 'error',
                 'message': str(e)
