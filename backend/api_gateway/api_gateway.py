@@ -24,17 +24,11 @@ Endpoints:
 """
 
 # Standard library imports
-from flask import Blueprint, Flask, jsonify, request, make_response
+from flask import Flask
 from flask_cors import CORS
-from flask_restx import Api, Resource, fields, Namespace
+from flask_restx import Api
 import sys
 import os
-import jwt
-import json
-import uuid
-import datetime
-from datetime import datetime, timedelta
-from functools import wraps
 
 # Add project root to Python path for relative imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -44,14 +38,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import microservices and utilities
-from backend.microservices.summarization_service import run_summarization, process_articles
-from backend.microservices.news_fetcher import fetch_news
-from backend.core.config import Config
-from backend.core.utils import setup_logger, log_exception
-from backend.microservices.auth_service import load_users
-from backend.microservices.news_storage import store_article_in_supabase, log_user_search, add_bookmark, get_user_bookmarks, delete_bookmark
-from backend.microservices.story_tracking_service import get_tracked_stories, create_tracked_story, get_story_details, delete_tracked_story
-from backend.api_gateway.utils.auth import token_required
+from backend.core.utils import setup_logger
+
+from backend.api_gateway.routes.news import news_ns
+from backend.api_gateway.routes.auth import auth_ns
+from backend.api_gateway.routes.health import health_ns
+from backend.api_gateway.routes.summarize import summarize_ns
+from backend.api_gateway.routes.user import user_ns
+from backend.api_gateway.routes.bookmark import bookmark_ns
+from backend.api_gateway.routes.story_tracking import story_tracking_ns
 
 # Initialize logger for the API Gateway
 logger = setup_logger(__name__)
@@ -77,15 +72,7 @@ api = Api(app, version='1.0', title='News Aggregator API',
 logger.info("Flask-RestX API initialized with documentation support")
 
 # Import namespaces from route modules
-try:
-    from backend.api_gateway.routes.news import news_ns
-    from backend.api_gateway.routes.auth import auth_ns
-    from backend.api_gateway.routes.health import health_ns
-    from backend.api_gateway.routes.summarize import summarize_ns
-    from backend.api_gateway.routes.user import user_ns
-    from backend.api_gateway.routes.bookmark import bookmark_ns
-    from backend.api_gateway.routes.story_tracking import story_tracking_ns
-    
+try:    
     # Register imported namespaces with the API
     api.add_namespace(news_ns)
     api.add_namespace(auth_ns)
@@ -98,14 +85,6 @@ try:
 except Exception as e:
     logger.error(f"Error loading API namespaces: {str(e)}")
     raise
-
-# token_required decorator is now in utils/auth.py
-
-# Define API models for request/response documentation
-
-# User profile model is now defined in routes/user.py
-
-# API models for other endpoints are defined in their respective modules
 
 logger.info("API Gateway initialization completed successfully")
 
