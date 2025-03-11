@@ -35,6 +35,9 @@ def setup_logger(name: str, log_file: str = None) -> logging.Logger:
     """Sets up a logger with file and console handlers"""
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, Config.LOG_LEVEL))
+    
+    # Disable propagation to parent loggers (root logger)
+    logger.propagate = False
 
     # Create formatters and handlers
     formatter = logging.Formatter(Config.LOG_FORMAT)
