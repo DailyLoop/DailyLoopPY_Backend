@@ -1,5 +1,7 @@
 # News Aggregator Project
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DailyLoop/DailyLoopPY_Backend)
+
 This project is a news aggregator that collects news from various sources,
 processes and summarizes the content using LLM, and tracks evolving stories.
 
