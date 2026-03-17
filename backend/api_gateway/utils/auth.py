@@ -2,48 +2,60 @@
 """
 Authentication Utilities
 
-This module provides authentication utilities for the News Aggregator API Gateway,
-including the token_required decorator for protecting routes that require authentication.
+Provides the token_required decorator for protecting routes.
+Validates Supabase-issued JWTs and injects user_id into Flask g.
 """
 
-# Standard library imports
-from flask import request
+from flask import request, g, current_app
 from functools import wraps
 import jwt
+import logging
 
-# Import Flask app for accessing config
-from flask import current_app
+logger = logging.getLogger(__name__)
+
 
 def token_required(f):
-    """Decorator to protect routes that require authentication.
-    
-    This decorator validates the JWT token in the Authorization header.
-    It ensures that only authenticated users can access protected endpoints.
-    
+    """Decorator to protect routes that require Supabase authentication.
+
+    Validates the Supabase JWT in the Authorization header using the
+    SUPABASE_JWT_SECRET. Sets g.user_id to the 'sub' claim (Supabase UUID)
+    for use by the decorated route handler.
+
     Args:
-        f: The function to be decorated.
-        
+        f: The route handler function to decorate.
+
     Returns:
-        decorated: The decorated function that includes token validation.
-        
+        The decorated function with token validation.
+
     Raises:
-        401: If the token is missing or invalid.
+        401: If the Authorization header is missing, malformed, or the token
+             is invalid/expired.
     """
     @wraps(f)
     def decorated(*args, **kwargs):
-        print("[DEBUG] [api_gateway] [token_required] Checking token in request")
         auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            print("[DEBUG] [api_gateway] [token_required] Authorization header missing")
-            return {'error': 'Authorization header missing'}, 401
-        try:
-            token = auth_header.split()[1]  # Extract token from 'Bearer <token>'
-            print(f"[DEBUG] [api_gateway] [token_required] Decoding token: {token[:10]}...")
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            print(f"[DEBUG] [api_gateway] [token_required] Token decoded successfully, user: {payload.get('sub', 'unknown')}")
+        if not auth_header or not auth_header.startswith('Bearer '):
+            logger.warning("Missing or malformed Authorization header")
+            return {'error': 'Authorization header missing or malformed'}, 401
 
-            return f(*args, **kwargs)
-        except Exception as e:
-            print(f"[DEBUG] [api_gateway] [token_required] Token validation error: {str(e)}")
+        token = auth_header.split(' ', 1)[1]
+
+        try:
+            jwt_secret = current_app.config['SUPABASE_JWT_SECRET']
+            payload = jwt.decode(
+                token,
+                jwt_secret,
+                algorithms=['HS256'],
+                audience='authenticated'
+            )
+            g.user_id = payload['sub']
+            logger.debug(f"Authenticated user: {g.user_id}")
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token has expired")
+            return {'error': 'Token has expired'}, 401
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid token: {e}")
             return {'error': 'Invalid token', 'message': str(e)}, 401
+
+        return f(*args, **kwargs)
     return decorated

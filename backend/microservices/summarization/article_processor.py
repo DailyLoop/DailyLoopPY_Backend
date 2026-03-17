@@ -8,12 +8,10 @@ This module provides functionality for processing news articles, including:
 - Extracting keywords
 - Managing bookmarks
 
-It integrates with Supabase for data persistence and OpenAI for text summarization.
+It integrates with Supabase for data persistence and Google Gemini API for text summarization.
 """
 
 import os
-from supabase import create_client, Client
-from dotenv import load_dotenv
 from backend.core.utils import setup_logger, log_exception
 from backend.microservices.summarization.content_fetcher import fetch_article_content
 from backend.microservices.summarization.keyword_extractor import get_keywords
@@ -22,16 +20,11 @@ from backend.microservices.summarization.keyword_extractor import get_keywords
 # This avoids circular imports while maintaining functionality
 from backend.microservices.summarization.summarization_utils import run_summarization
 
+# Import centralized Supabase client
+from backend.core.supabase_client import supabase
+
 # Initialize logger
 logger = setup_logger(__name__)
-
-# Load environment variables
-load_dotenv('../../.env')  # Optional: Only use this for local development
-
-# Initialize Supabase client
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 logger.info("Article Processor Service initialized with Supabase configuration")
 

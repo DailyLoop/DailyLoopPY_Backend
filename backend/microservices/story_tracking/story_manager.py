@@ -13,25 +13,15 @@ It integrates with Supabase for data persistence and handles the core story mana
 
 import datetime
 import logging
-from supabase import create_client, Client
-import os
-from dotenv import load_dotenv
-from backend.microservices.story_tracking.article_retriever import get_story_articles
+from backend.microservices.story_tracking.article_retriever import get_story_articles, get_articles_for_stories
 from backend.microservices.story_tracking.article_matcher import find_related_articles
+
+# Import centralized Supabase client
+from backend.core.supabase_client import supabase
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Initialize Supabase client with service role key for admin access to bypass RLS
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-# Create Supabase client for database operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 logger.info("Story Manager Service initialized with Supabase configuration")
 
@@ -123,36 +113,48 @@ def get_tracked_stories(user_id):
         
         tracked_stories = result.data if result.data else []
         logger.info(f"Found {len(tracked_stories)} tracked stories")
-        
-        # For each tracked story, get its related articles
+
+        if not tracked_stories:
+            return tracked_stories
+
+        # Batch fetch all articles for all stories in one operation
+        story_ids = [story["id"] for story in tracked_stories]
+        logger.debug(f"Fetching articles for {len(story_ids)} stories")
+        articles_by_story = get_articles_for_stories(story_ids)
+
+        # Add articles to each story
         for story in tracked_stories:
-            logger.debug(f"Getting articles for story {story['id']}")
-            story["articles"] = get_story_articles(story["id"])
+            story["articles"] = articles_by_story.get(story["id"], [])
             logger.debug(f"Found {len(story['articles'])} articles for story {story['id']}")
-        
+
         return tracked_stories
     
     except Exception as e:
         logger.error(f"Error getting tracked stories: {str(e)}")
         raise e
 
-def get_story_details(story_id):
+def get_story_details(story_id, user_id=None):
     """
     Gets details for a specific tracked story including related articles.
-    
+
     Args:
         story_id: The ID of the tracked story
-        
+        user_id: Optional user ID to filter by owner
+
     Returns:
-        The tracked story with its related articles
+        The tracked story with its related articles, or None if not found or not owned by user
     """
-    logger.info(f"Getting story details for story ID {story_id}")
+    logger.info(f"Getting story details for story ID {story_id}" + (f" for user {user_id}" if user_id else ""))
     try:
         # Get the tracked story
-        result = supabase.table("tracked_stories") \
+        query = supabase.table("tracked_stories") \
             .select("*") \
-            .eq("id", story_id) \
-            .execute()
+            .eq("id", story_id)
+
+        if user_id:
+            query = query.eq("user_id", user_id)
+
+        result = query.execute()
         
         if not result.data or len(result.data) == 0:
             logger.warning(f"No story found with ID {story_id}")

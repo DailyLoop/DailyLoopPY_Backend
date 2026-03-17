@@ -7,9 +7,8 @@ creating, retrieving, updating, and deleting tracked stories.
 """
 
 # Standard library imports
-from flask import jsonify, request, make_response
+from flask import jsonify, request, make_response, g
 from flask_restx import Resource, Namespace
-import jwt
 from datetime import datetime
 import os
 
@@ -110,13 +109,7 @@ class StoryTracking(Resource):
         """
         try:
             logger.debug("Story tracking post endpoint called")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            # Import app from main module to access config
-            from flask import current_app
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Creating tracked story for user: {user_id}")
             
             data = request.get_json()
@@ -151,25 +144,6 @@ class StoryTracking(Resource):
                 'message': str(e)
             }), 500)
 
-@story_tracking_ns.route('', methods=['OPTIONS'])
-class StoryTrackingOptions(Resource):
-    def options(self):
-        """Handle OPTIONS requests for the story tracking endpoint.
-
-        This function sets the necessary CORS headers for preflight requests
-        to the story tracking endpoint.
-
-        Returns:
-            Response: A Flask response object with appropriate CORS headers.
-        """
-        print("[DEBUG] [api_gateway] [story_tracking_options] Called")
-        response = make_response()
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
-        print("[DEBUG] [api_gateway] [story_tracking_options] Responding with CORS headers")
-        return response
-
 @story_tracking_ns.route('/start')
 class StartStoryTracking(Resource):
     @token_required
@@ -187,13 +161,7 @@ class StartStoryTracking(Resource):
         """
         try:
             logger.debug("Start story tracking endpoint called")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            # Import app from main module to access config
-            from flask import current_app
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Starting polling for user: {user_id}")
             
             data = request.get_json()
@@ -248,13 +216,7 @@ class StopStoryTracking(Resource):
         """
         try:
             logger.debug("Stop story tracking endpoint called")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            # Import app from main module to access config
-            from flask import current_app
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Stopping polling for user: {user_id}")
             
             data = request.get_json()
@@ -307,13 +269,7 @@ class UserStoryTracking(Resource):
         """
         try:
             logger.debug("User story tracking endpoint called")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            # Import app from main module to access config
-            from flask import current_app
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Getting tracked stories for user: {user_id}")
             
             logger.debug(f"Calling get_tracked_stories")
@@ -339,22 +295,23 @@ class StoryTrackingDetail(Resource):
         """Get details for a specific tracked story.
 
         Requires a valid JWT token in the Authorization header.
-        Retrieves detailed information about a specific tracked story.
+        Retrieves detailed information about a specific tracked story owned by the authenticated user.
 
         Args:
             story_id (str): The ID of the tracked story to retrieve.
 
         Returns:
             dict: Contains story details and success status.
-            int: HTTP 200 on success, 404 if story not found, 500 on error.
+            int: HTTP 200 on success, 403 if not owned by user, 404 if story not found, 500 on error.
         """
         try:
-            logger.debug(f"Story tracking detail endpoint called for story: {story_id}")
+            user_id = g.user_id
+            logger.debug(f"Story tracking detail endpoint called for story: {story_id} by user: {user_id}")
             logger.debug(f"Calling get_story_details for story: {story_id}")
-            story = get_story_details(story_id)
-            
+            story = get_story_details(story_id, user_id)
+
             if not story:
-                logger.warning(f"No story found with ID: {story_id}")
+                logger.warning(f"No story found with ID: {story_id} for user: {user_id}")
                 return make_response(jsonify({
                     'status': 'error',
                     'message': 'Tracked story not found'
@@ -390,13 +347,7 @@ class StoryTrackingDetail(Resource):
         """
         try:
             logger.debug(f"Delete story tracking endpoint called for story: {story_id}")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            # Import app from main module to access config
-            from flask import current_app
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Deleting tracked story {story_id} for user {user_id}")
             
             logger.debug(f"Calling delete_tracked_story")

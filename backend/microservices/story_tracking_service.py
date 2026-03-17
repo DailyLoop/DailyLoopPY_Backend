@@ -21,18 +21,15 @@ Database Tables Used:
 - news_articles: Stores article content and metadata
 
 Environment Variables Required:
-- VITE_SUPABASE_URL: Supabase project URL
+- SUPABASE_URL: Supabase project URL
 - SUPABASE_SERVICE_ROLE_KEY: Service role key for admin access
 """
 
 #TODO: Implement proper background processing: Use a task queue like Celery to handle article fetching in the background
 
-import os
-import datetime
-from supabase import create_client, Client
-from dotenv import load_dotenv
 # from summarization.story_tracking.story_tracking import cluster_articles
 from backend.microservices.news_fetcher import fetch_news
+from backend.core.utils import setup_logger
 
 # Import the refactored modules
 from backend.microservices.story_tracking.article_matcher import find_related_articles
@@ -51,25 +48,9 @@ from backend.microservices.story_tracking.story_manager import (
 )
 from backend.microservices.story_tracking.article_retriever import get_story_articles
 
-# Service initialization logging
-print("[DEBUG] [story_tracking_service] [main] Story tracking service starting...")
-
-# Load environment variables from .env file
-load_dotenv()
-print("[DEBUG] [story_tracking_service] [main] Environment variables loaded")
-
-# Initialize Supabase client with service role key for admin access to bypass RLS
-# RLS (Row Level Security) policies are bypassed when using the service role key
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-print(f"[DEBUG] [story_tracking_service] [main] Supabase URL: {SUPABASE_URL}")
-print(f"[DEBUG] [story_tracking_service] [main] Supabase Key: {SUPABASE_SERVICE_KEY[:5]}..." if SUPABASE_SERVICE_KEY else "[DEBUG] [story_tracking_service] [main] Supabase Key: None")
-
-# Create Supabase client for database operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-
-print("[DEBUG] [story_tracking_service] [main] Supabase client initialized")
+# Initialize logger
+logger = setup_logger(__name__)
+logger.info("Story tracking service initialized")
 
 def run_story_tracking(article_embeddings):
     """
@@ -86,10 +67,10 @@ def run_story_tracking(article_embeddings):
         list: A list of cluster labels indicating which story cluster each article belongs to.
               Empty list is returned if article_embeddings is None or empty.
     """
-    print(f"[DEBUG] [story_tracking_service] [run_story_tracking] Running story tracking with {len(article_embeddings) if article_embeddings else 0} embeddings")
+    logger.debug(f"Running story tracking with {len(article_embeddings) if article_embeddings else 0} embeddings")
     # Uncomment when clustering functionality is implemented
     # labels = cluster_articles(article_embeddings)
-    # print(f"[DEBUG] [story_tracking_service] [run_story_tracking] Clustering complete, found {len(labels) if labels else 0} labels")
+    # logger.debug(f"Clustering complete, found {len(labels) if labels else 0} labels")
     # return labels
     return []
 
@@ -98,7 +79,7 @@ def run_story_tracking(article_embeddings):
 
 if __name__ == '__main__':
     # Example usage - this code runs when the script is executed directly
-    print("[DEBUG] [story_tracking_service] [main] Running story_tracking_service.py as main")
+    logger.info("Running story_tracking_service.py as main")
     result = update_all_tracked_stories()
-    print(f"[DEBUG] [story_tracking_service] [main] Updated {result['stories_updated']} stories with {result['new_articles']} new articles")
-    print("[DEBUG] [story_tracking_service] [main] Execution completed")
+    logger.info(f"Updated {result['stories_updated']} stories with {result['new_articles']} new articles")
+    logger.info("Execution completed")

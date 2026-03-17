@@ -23,8 +23,12 @@ class Config:
     
     # API Keys
     NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-    
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+    # Supabase Configuration
+    SUPABASE_URL = os.getenv('SUPABASE_URL')
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+    SUPABASE_JWT_SECRET = os.getenv('SUPABASE_JWT_SECRET')
 
     # CORS Configuration
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')

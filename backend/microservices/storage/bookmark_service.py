@@ -10,55 +10,58 @@ The module uses the Supabase client to interact with the following tables:
 - news_articles: Retrieves article data for bookmarks
 
 Environment Variables Required:
-- VITE_SUPABASE_URL: Supabase project URL
-- VITE_SUPABASE_ANON_KEY: Supabase anonymous key for client operations
+- SUPABASE_URL: Supabase project URL
+- SUPABASE_SERVICE_ROLE_KEY: Service role key for admin operations
 """
 
-import os
-import datetime
 import logging
-from supabase import create_client, Client
-from dotenv import load_dotenv
+
+# Import centralized Supabase client
+from backend.core.supabase_client import supabase
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Load environment variables from .env file
-load_dotenv('../../../.env')
-
-# Initialize Supabase client with environment variables
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")  # Using anon key for server-side operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 logger.info("Bookmark Service initialized with Supabase configuration")
 
 def add_bookmark(user_id, news_id):
     """
     Adds a bookmark by inserting a record into the user_bookmarks table.
-    
+
     This function creates a bookmark relationship between a user and a news article,
-    allowing users to save articles for later reading.
-    
+    allowing users to save articles for later reading. If a bookmark already exists
+    for this user-article pair, the existing bookmark is returned.
+
     Args:
         user_id (str): The ID of the user adding the bookmark
         news_id (str): The ID of the news article to bookmark
-    
+
     Returns:
-        dict or None: The created bookmark record if successful, None otherwise
-    
+        dict or None: The bookmark record (existing or newly created) if successful, None otherwise
+
     Raises:
         Exception: If there's an error during the database operation
     """
     logger.info(f"Adding bookmark for user {user_id} to article {news_id}")
     try:
+        # Check if bookmark already exists
+        existing = supabase.table("user_bookmarks") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .eq("news_id", news_id) \
+            .execute()
+
+        if existing.data and len(existing.data) > 0:
+            logger.info(f"Bookmark already exists for user {user_id} and article {news_id}")
+            return existing.data[0]
+
         # Insert a new bookmark record linking user to article
         result = supabase.table("user_bookmarks").insert({
             "user_id": user_id,
             "news_id": news_id,
         }).execute()
-        
+
         # Return the first data item if available, otherwise None
         bookmark_id = result.data[0]["id"] if result.data else None
         logger.info(f"Successfully added bookmark with ID: {bookmark_id}")

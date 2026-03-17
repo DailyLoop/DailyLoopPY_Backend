@@ -8,25 +8,15 @@ It integrates with the news fetcher service to find relevant articles based on k
 
 import datetime
 import logging
-from supabase import create_client, Client
-import os
-from dotenv import load_dotenv
 from backend.microservices.news_fetcher import fetch_news
 from backend.microservices.news_storage import store_article_in_supabase
+
+# Import centralized Supabase client
+from backend.core.supabase_client import supabase
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Initialize Supabase client with service role key for admin access to bypass RLS
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-# Create Supabase client for database operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 logger.info("Article Matcher Service initialized with Supabase configuration")
 

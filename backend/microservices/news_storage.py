@@ -14,15 +14,11 @@ Other functionality has been moved to dedicated modules:
 - Bookmark management: storage/bookmark_service.py
 
 Environment Variables Required:
-- VITE_SUPABASE_URL: Supabase project URL
-- VITE_SUPABASE_ANON_KEY: Supabase anonymous key for client operations
+- SUPABASE_URL: Supabase project URL
+- SUPABASE_SERVICE_ROLE_KEY: Service role key for admin operations
 """
 
-import os
-import datetime
 import logging
-from supabase import create_client, Client
-from dotenv import load_dotenv
 
 # Import functions from storage modules
 from backend.microservices.storage.search_logger import log_user_search
@@ -32,17 +28,12 @@ from backend.microservices.storage.bookmark_service import (
     delete_bookmark
 )
 
+# Import centralized Supabase client
+from backend.core.supabase_client import supabase
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Load environment variables from .env file
-load_dotenv('../../.env')
-
-# Initialize Supabase client with environment variables
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")  # Using anon key for server-side operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 logger.info("News Storage Service initialized with Supabase configuration")
 

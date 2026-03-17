@@ -6,23 +6,23 @@ This module provides core summarization functionality that can be used by other 
 without creating circular dependencies.
 
 Key Features:
-- Text summarization using OpenAI's GPT models
+- Text summarization using Google Gemini API
 """
 
-import openai
+import google.generativeai as genai
 from backend.core.config import Config
 from backend.core.utils import setup_logger, log_exception
 
 # Initialize logger
 logger = setup_logger(__name__)
 
-# Configure OpenAI with your API key from environment variables
-openai.api_key = Config.OPENAI_API_KEY
+# Configure Gemini with your API key from environment variables
+genai.configure(api_key=Config.GEMINI_API_KEY)
 
 @log_exception(logger)
 def run_summarization(text):
     """
-    Generates a concise summary of the provided text using OpenAI's GPT model.
+    Generates a concise summary of the provided text using Google Gemini API.
 
     Args:
         text (str): The input text to be summarized.
@@ -32,22 +32,24 @@ def run_summarization(text):
              Returns an error message if summarization fails.
 
     Note:
-        Uses OpenAI's GPT-4 (or your specified model) with specific parameters:
+        Uses Google Gemini's latest model with specific parameters:
         - Temperature: 0.5
-        - Max tokens: 200
+        - Max output tokens: 200
     """
-    return "Summarized Text"
-    # try:
-    #     response = openai.ChatCompletion.create(
-    #         model="gpt-4o-mini",  # Change to your desired model (e.g., "gpt-3.5-turbo")
-    #         messages=[
-    #             {"role": "system", "content": "You are a helpful assistant that summarizes text in approximately 150 words."},
-    #             {"role": "user", "content": f"Please summarize the following text:\n\n{text}"}
-    #         ],
-    #         max_tokens=200,
-    #         temperature=0.5
-    #     )
-    #     return response.choices[0].message.content.strip()
-    # except Exception as e:
-    #     logger.error(f"Error in summarization: {str(e)}")
-    #     return "Error generating summary"
+    try:
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(
+            f"""You are a helpful assistant that summarizes text in approximately 150 words.
+
+Please summarize the following text:
+
+{text}""",
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.5,
+                max_output_tokens=200
+            )
+        )
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"Error in summarization: {str(e)}")
+        return "Error generating summary"

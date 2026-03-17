@@ -39,6 +39,7 @@ load_dotenv()
 
 # Import microservices and utilities
 from backend.core.utils import setup_logger
+from backend.core.config import Config
 
 from backend.api_gateway.routes.news import news_ns
 from backend.api_gateway.routes.auth import auth_ns
@@ -54,17 +55,16 @@ logger.info("API Gateway starting up...")
 
 # Initialize Flask application with security configurations
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  # JWT secret key for token signing
+app.config['SUPABASE_JWT_SECRET'] = Config.SUPABASE_JWT_SECRET
 logger.info("Flask app initialized with security configurations")
 
 # Configure CORS to allow specific origins and methods
-allowed_origins = ["http://localhost:5173", "http://localhost:8080"]
-CORS(app, 
-     origins=allowed_origins, 
-     supports_credentials=True, 
-     allow_headers=["Content-Type", "Authorization"], 
+CORS(app,
+     origins=Config.CORS_ORIGINS,
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-logger.info(f"CORS configured with allowed origins: {allowed_origins}")
+logger.info(f"CORS configured with allowed origins: {Config.CORS_ORIGINS}")
 
 # Initialize Flask-RestX for API documentation
 api = Api(app, version='1.0', title='News Aggregator API',

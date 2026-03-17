@@ -8,24 +8,14 @@ It handles enabling/disabling polling for stories and updating stories with new 
 
 import datetime
 import logging
-from supabase import create_client, Client
-import os
-from dotenv import load_dotenv
 from backend.microservices.story_tracking.article_matcher import find_related_articles
+
+# Import centralized Supabase client
+from backend.core.supabase_client import supabase
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Initialize Supabase client with service role key for admin access to bypass RLS
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-# Create Supabase client for database operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 logger.info("Polling Service initialized with Supabase configuration")
 

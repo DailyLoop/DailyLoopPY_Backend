@@ -6,11 +6,8 @@ This module contains the API routes for bookmark operations including adding, li
 """
 
 # Standard library imports
-from flask import jsonify, request, make_response
+from flask import jsonify, request, make_response, g
 from flask_restx import Resource, Namespace
-import jwt
-from functools import wraps
-from flask import current_app
 
 # Import microservices and utilities
 from backend.microservices.news_storage import add_bookmark, get_user_bookmarks, delete_bookmark
@@ -30,21 +27,17 @@ class Bookmark(Resource):
     @token_required
     def get(self):
         """Retrieve all bookmarks for the authenticated user.
-        
+
         Requires a valid JWT token in the Authorization header.
         Returns a list of bookmarked articles for the current user.
-        
+
         Returns:
             dict: Contains list of bookmarked articles and success status.
             int: HTTP 200 on success, 500 on error.
         """
         try:
             logger.info("Get bookmarks endpoint called")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Getting bookmarks for user: {user_id}")
 
             bookmarks = get_user_bookmarks(user_id)
@@ -65,26 +58,22 @@ class Bookmark(Resource):
     @token_required
     def post(self):
         """Add a new bookmark for the authenticated user.
-        
+
         Requires a valid JWT token in the Authorization header.
         Creates a bookmark linking the user to a specific news article.
-        
+
         Expected JSON payload:
         {
             'news_id': str (required)
         }
-        
+
         Returns:
             dict: Contains bookmark ID and success status.
             int: HTTP 201 on success, 400 on validation error, 500 on server error.
         """
         try:
             logger.info("Add bookmark endpoint called")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Adding bookmark for user: {user_id}")
 
             data = request.get_json()
@@ -132,11 +121,7 @@ class BookmarkDelete(Resource):
         """
         try:
             logger.info(f"Delete bookmark endpoint called for bookmark: {bookmark_id}")
-            auth_header = request.headers.get('Authorization')
-            token = auth_header.split()[1]
-            logger.debug(f"Decoding token: {token[:10]}...")
-            payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-            user_id = payload.get('sub')
+            user_id = g.user_id
             logger.info(f"Deleting bookmark {bookmark_id} for user {user_id}")
 
             result = delete_bookmark(user_id, bookmark_id)

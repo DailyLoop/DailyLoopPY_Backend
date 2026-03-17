@@ -7,17 +7,14 @@ It includes capabilities for content extraction, text summarization, and keyword
 
 Key Features:
 - Article content fetching from URLs
-- Text summarization using OpenAI's GPT models
+- Text summarization using Google Gemini API
 - Keyword extraction using YAKE
 - Integration with Supabase for data persistence
 """
 
-import json
-import requests
-import openai
+import google.generativeai as genai
 from backend.core.config import Config
 from backend.core.utils import setup_logger, log_exception
-import os
 
 # Import the refactored modules
 from backend.microservices.summarization.content_fetcher import fetch_article_content
@@ -28,21 +25,10 @@ from backend.microservices.summarization.summarization_utils import run_summariz
 # Initialize logger
 logger = setup_logger(__name__)
 
-# Configure OpenAI with your API key from environment variables
-openai.api_key = Config.OPENAI_API_KEY
-
-# No need to instantiate a client object; we'll use openai.ChatCompletion.create directly.
-
-from supabase import create_client, Client  # Make sure you're using supabase-py or your preferred client
-
-from dotenv import load_dotenv
-load_dotenv('../../.env')  # Optional: Only use this for local development.
-
-# Use your service key here for secure server-side operations.
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+# Configure Gemini with your API key from environment variables
+genai.configure(api_key=Config.GEMINI_API_KEY)
 
 
 if __name__ == '__main__':
-    process_articles()
+    # Example usage: process_articles(article_ids=['<article_id>'], user_id='<user_id>')
+    logger.info("Summarization service module loaded")

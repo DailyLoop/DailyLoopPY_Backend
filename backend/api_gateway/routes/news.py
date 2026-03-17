@@ -6,9 +6,8 @@ This module contains the API routes for news operations including fetching and p
 """
 
 # Standard library imports
-from flask import jsonify, request, make_response
+from flask import jsonify, request, make_response, g
 from flask_restx import Resource, Namespace
-import jwt
 import traceback
 
 # Import microservices and utilities
@@ -23,29 +22,32 @@ logger = setup_logger(__name__)
 # Create news namespace
 news_ns = Namespace('api/news', description='News operations')
 
+# Import token_required decorator from utils
+from backend.api_gateway.utils.auth import token_required
+
 @news_ns.route('/fetch')
 class NewsFetch(Resource):
+    @token_required
     @news_ns.param('keyword', 'Search keyword for news')
-    @news_ns.param('user_id', 'User ID for logging search history')
     @news_ns.param('session_id', 'Session ID for tracking requests')
     def get(self):
         """Fetch news articles based on a keyword and store them in Supabase.
-        
-        This endpoint fetches news articles matching the provided keyword,
-        stores them in Supabase, and logs the search history if a user ID is provided.
-        
+
+        Requires a valid JWT token in the Authorization header.
+        Fetches news articles matching the provided keyword,
+        stores them in Supabase, and logs the search history for the authenticated user.
+
         Args:
             keyword (str): The search term for fetching news articles.
-            user_id (str, optional): User ID for logging search history.
             session_id (str): Session ID for tracking the request.
-            
+
         Returns:
             dict: Contains the stored article IDs and success status.
             int: HTTP 200 on success, 500 on error.
         """
         try:
             keyword = request.args.get('keyword', '')
-            user_id = request.args.get('user_id')  # optional
+            user_id = g.user_id
             session_id = request.args.get('session_id')
             logger.info(f"News fetch endpoint called with keyword: '{keyword}', user_id: {user_id}, session_id: {session_id}")
 
@@ -82,34 +84,23 @@ class NewsFetch(Resource):
 
 @news_ns.route('/process')
 class NewsProcess(Resource):
+    @token_required
     @news_ns.param('session_id', 'Session ID for tracking requests (optional)')
     def post(self):
         """Process and summarize a batch of articles.
-        
-        This endpoint processes articles based on the provided article IDs in the request body,
-        generating summaries and checking bookmark status for the user if authenticated.
-        
+
+        Requires a valid JWT token in the Authorization header.
+        Processes articles based on the provided article IDs in the request body,
+        generating summaries and checking bookmark status for the authenticated user.
+
         Returns:
             dict: Contains processed articles data and success status.
-            int: HTTP 200 on success, 500 on error.
+            int: HTTP 200 on success, 401 if not authenticated, 500 on error.
         """
         try:
             session_id = request.args.get('session_id')
-            
-            # Try to get user_id from JWT token if it exists
-            user_id = None
-            auth_header = request.headers.get('Authorization')
-            if auth_header:
-                try:
-                    token = auth_header.split()[1]  # Extract token from 'Bearer <token>'
-                    # Note: The secret key should be imported from the main app
-                    from flask import current_app
-                    payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'], audience='authenticated')
-                    user_id = payload.get('sub')
-                    logger.debug(f"Extracted user_id from token: {user_id}")
-                except Exception as e:
-                    logger.warning(f"Could not extract user_id from token: {str(e)}")
-            
+            user_id = g.user_id
+
             logger.info(f"News process endpoint called with session_id: {session_id}, user_id: {user_id}")
             
             # Get article_ids from request body
