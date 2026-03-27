@@ -42,8 +42,8 @@ echo "✓ Environment variables configured"
 # Install dependencies if needed
 echo "Checking dependencies..."
 if ! python3 -c "import flask" 2>/dev/null; then
-    echo "Installing dependencies from requirements.txt..."
-    python3 -m pip install --break-system-packages -q -r requirements.txt
+    echo "Installing dependencies from pyproject.toml..."
+    uv sync -q
     echo "✓ Dependencies installed"
 fi
 

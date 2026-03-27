@@ -3,3 +3,9 @@
 *__pycache__*
 data/news/*
 data/summarized/*
+
+# UV - Python Package Manager
+.venv/
+*.egg-info/
+dist/
+build/

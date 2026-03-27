@@ -5,16 +5,10 @@
 
 echo "Starting News Aggregator Polling Worker..."
 
-# Activate virtual environment if it exists
-if [ -d "venv" ]; then
-  echo "Activating virtual environment..."
-  source venv/bin/activate
-fi
-
 # Install dependencies if needed
 if [ "$1" == "--install" ]; then
   echo "Installing dependencies..."
-  pip install -r requirements.txt
+  uv sync
 fi
 
 # Set environment variables from .env file if it exists
@@ -23,9 +17,9 @@ if [ -f ".env" ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
-# Start the polling worker
+# Start the polling worker using uv
 echo "Starting polling worker..."
-python -m backend.microservices.polling_worker
+uv run -m backend.microservices.polling_worker
 
 # Keep this script running until manually terminated
 echo "Polling worker started. Press Ctrl+C to stop."

@@ -1,19 +1,23 @@
 # Makefile for News Aggregator Project
 
-.PHONY: run test docker-build docker-clean
+.PHONY: run test docker-build docker-clean install
 
-# Run the API Gateway (example)
+# Install dependencies using uv
+install:
+	uv sync
+
+# Run the API Gateway
 run:
-	python backend/api_gateway/api_gateway.py 8000
+	uv run -m backend.api_gateway.api_gateway
 
-# Run tests using pytest
+# Run tests using pytest via uv
 test:
-	pytest --maxfail=1 --disable-warnings -q
+	uv run pytest --maxfail=1 --disable-warnings -q
 
 # Build Docker image
 docker-build:
 	docker build -t news-aggregator:latest .
 
-# Clean Docker image (example)
+# Clean Docker image
 docker-clean:
 	docker rmi news-aggregator:latest
