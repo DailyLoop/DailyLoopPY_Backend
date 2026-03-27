@@ -12,7 +12,7 @@ torch
 # Summarization & Clustering
 numpy
 scikit-learn
-google-generativeai
+google-genai
 yake
 nltk
 

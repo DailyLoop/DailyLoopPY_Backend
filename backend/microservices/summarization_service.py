@@ -12,8 +12,6 @@ Key Features:
 - Integration with Supabase for data persistence
 """
 
-import google.generativeai as genai
-from backend.core.config import Config
 from backend.core.utils import setup_logger, log_exception
 
 # Import the refactored modules
@@ -24,9 +22,6 @@ from backend.microservices.summarization.summarization_utils import run_summariz
 
 # Initialize logger
 logger = setup_logger(__name__)
-
-# Configure Gemini with your API key from environment variables
-genai.configure(api_key=Config.GEMINI_API_KEY)
 
 
 if __name__ == '__main__':
